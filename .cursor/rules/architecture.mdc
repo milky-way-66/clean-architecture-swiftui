@@ -1,0 +1,26 @@
+---
+description: App template iOS layer architecture and dependency rules
+globs: App/**/*.swift,UnitTests/**/*.swift
+alwaysApply: false
+---
+
+# App architecture (SwiftUI clean-architecture template)
+
+Respect the existing composition and boundaries. Do not introduce new global singletons for app services.
+
+## Layers (dependency direction)
+
+1. **UI** (`UI/`) — SwiftUI views, local routing state, presentation. Depends on `Interactors` and read-only `AppState` via environment injection only (`@Environment(\.injected)`). No direct `URLSession` or repository calls from views.
+2. **Interactors** (`Interactors/`) — Use cases: orchestrate web + DB repositories, `async throws` APIs. Expose `protocol` + `Real*` + `Stub*` (tests) like existing interactors.
+3. **Repositories** — `Repositories/WebAPI/` (network + decoding), `Repositories/Database/` (SwiftData persistence), `Repositories/Models/` (DTOs / schema types). Web layer uses `WebRepository.call` and `APICall`; keep HTTP details out of interactors.
+4. **Core** (`Core/`) — `AppState`, handlers (`DeepLinksHandler`, `PushNotificationsHandler`, `SystemEventsHandler`), app lifecycle. Side effects stay behind protocols where the project already uses them.
+5. **Dependency injection** — `AppEnvironment.bootstrap()` is the composition root: construct session → repositories → interactors → `DIContainer`. Register new types there, not scattered in views.
+
+## State
+
+- Global UI-related state lives in `Store<AppState>` (`Utilities/Store.swift`) and is accessed through `DIContainer.appState` / interactors as in existing code.
+- Prefer extending `AppState` nested types for new routing or permission flags rather than ad-hoc `@StateObject` globals.
+
+## Tests
+
+- Mirror protocols with mocks/stubs under `UnitTests/Mocks/`. Test interactors and repositories in isolation following existing test file layout.

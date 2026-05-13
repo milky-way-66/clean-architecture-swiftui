@@ -1,75 +1,96 @@
-### Articles related to this project
+# App — SwiftUI Clean Architecture Template
 
-* [Clean Architecture for SwiftUI](https://nalexn.github.io/clean-architecture-swiftui/?utm_source=nalexn_github)
-* [Programmatic navigation in SwiftUI project](https://nalexn.github.io/swiftui-deep-linking/?utm_source=nalexn_github)
-* [Separation of Concerns in Software Design](https://nalexn.github.io/separation-of-concerns/?utm_source=nalexn_github)
+A starter iOS codebase derived from [nalexn/clean-architecture-swiftui](https://github.com/nalexn/clean-architecture-swiftui). All app-specific screens have been stripped out, leaving the **architecture skeleton** you can fork for a new SwiftUI app.
 
----
+> See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full layering and runtime overview, and [docs/BUILD.md](docs/BUILD.md) for build and test instructions.
 
-# Clean Architecture for SwiftUI + Combine
+## What's in the box
 
-A demo project showcasing the setup of the SwiftUI app with Clean Architecture.
+| Area | Choice |
+|------|--------|
+| UI | SwiftUI (`NavigationStack`, `.searchable`, `.refreshable`, sheets) |
+| Persistence | SwiftData (`@Model`, `ModelContainer`, `@Query`-driven views) |
+| Reactive state | Combine (`Store` = `CurrentValueSubject`, `Loadable<T>` + `CancelBag`) |
+| Networking | `URLSession` + `WebRepository` helper + typed `APICall` + `APIError` |
+| Permissions | Push notifications (`UserPermissionsInteractor`) |
+| Image loading | `ImagesInteractor` + `ImagesWebRepository` + `ImageView` |
+| Deep links | `DeepLinksHandler` + `DeepLink` enum (universal-link template) |
+| System events | `SystemEventsHandler` (keyboard, scene active, push registration) |
+| Package manager | Swift Package Manager (`Package.swift`) + `App.xcodeproj` |
+| Platforms | iOS 18+ (UIKit bridge for `AppDelegate` / scenes) |
+| Dev / QA | [EnvironmentOverrides](https://github.com/nalexn/EnvironmentOverrides), [ViewInspector](https://github.com/nalexn/ViewInspector) |
 
-The app uses the [restcountries.com](https://restcountries.com/) REST API to show the list of countries and details about them.
+## Architecture at a glance
 
-**Check out [mvvm branch](https://github.com/nalexn/clean-architecture-swiftui/tree/mvvm) for the MVVM revision of the same app.**
+Dependencies point **inward**: views depend on interactors and read-only `AppState`; interactors depend on repository protocols; repositories depend on Foundation / SwiftData / UIKit.
 
-For the example of handling the **authentication state** in the app, you can refer to my [other tiny project](https://github.com/nalexn/uikit-swiftui) that harnesses the locks and keys principle for solving this problem.
+```
+UI (SwiftUI)
+   ↓ @Environment(\.injected)
+Interactors (use cases)
+   ↓ protocols
+Repositories (Web + SwiftData)
+   ↑
+Core: AppState · DeepLinksHandler · PushNotificationsHandler · SystemEventsHandler
+   ↑
+AppEnvironment.bootstrap()   ← composition root
+```
 
-![platforms](https://img.shields.io/badge/platforms-iPhone%20%7C%20iPad%20%7C%20macOS-lightgrey) [![codecov](https://codecov.io/gh/nalexn/clean-architecture-swiftui/branch/master/graph/badge.svg)](https://codecov.io/gh/nalexn/clean-architecture-swiftui) [![codebeat badge](https://codebeat.co/badges/db33561b-0b2b-4ee1-a941-a08efbd0ebd7)](https://codebeat.co/projects/github-com-nalexn-clean-architecture-swiftui-master)
+The composition root (`App/DependencyInjection/AppEnvironment.swift`) is the **only** place that wires concrete types. Views read services through `DIContainer` injected into `EnvironmentValues.injected`.
 
-<p align="center">
-  <img src="https://github.com/nalexn/blob_files/blob/master/images/countries_preview.png?raw=true" alt="Diagram"/>
-</p>
+## Project layout
 
-## Key features
-* End of 2024 update: the project was fully revamped to use modern iOS stack technologies
-* Decoupled **Presentation**, **Business Logic**, and **Data Access** layers
-* Programmatic navigation. Push notifications with deep link
-* Redux-like centralized `AppState` as the single source of truth
-* Native SwiftUI dependency injection
-* Handling of the system events (such as `didBecomeActive`, `willResignActive`)
-* Full test coverage, including the UI (thanks to the [ViewInspector](https://github.com/nalexn/ViewInspector))
-* Simple yet flexible networking layer built on async - await
-* UI - vanilla **SwiftUI** + **Combine**
-* Data persistence with **SwiftData**
+```
+App/
+  Core/                          App entry, delegates, AppState, system handlers
+  DependencyInjection/           AppEnvironment (composition root) + DIContainer
+  Interactors/                   Use cases (Images, UserPermissions, ...)
+  Repositories/
+    WebAPI/                      WebRepository + Images + PushToken (+ your APIs)
+    Database/                    ModelContainer + MainDBRepository (@ModelActor)
+    Models/                      AppSchema (SwiftData) + your DBModel / ApiModel
+  UI/
+    Common/                      ImageView, ErrorView, Query+Search
+    Home/                        Template root screen (replace this)
+    RootViewModifier.swift       Background blur when inactive
+  Utilities/                     Store, Loadable, CancelBag, Helpers
+  Resources/                     Assets.xcassets, Localizable.xcstrings
 
-## Architecture overview
+UnitTests/
+  Mocks/                         Mock harness + interactor / repo mocks
+  Repositories/                  WebRepository + ImageWebRepository tests
+  System/                        DeepLinks + Push notifications tests
+  UI/                            RootViewAppearance + ImageView tests
+  Utilities/                     Loadable / Helpers tests
+```
 
-<p align="center">
-  <img src="https://github.com/nalexn/blob_files/blob/master/images/swiftui_arc_001.png?raw=true" alt="Diagram"/>
-</p>
+## Adding a feature
 
-### Presentation Layer
+Follow the *Extension points* checklist in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md):
 
-**SwiftUI views** that contain no business logic and are a function of the state.
+1. Add a **repository protocol** + a `Real*` implementation under `App/Repositories/WebAPI/` or extend `MainDBRepository` under `App/Repositories/Database/`.
+2. Add an **interactor** (`protocol` + `Real*` + `Stub*`) under `App/Interactors/` and wire it in `AppEnvironment.configuredInteractors`.
+3. Expose it on `DIContainer.Interactors` so views can read it via `@Environment(\.injected)`.
+4. Extend `AppState` routing or permissions if global coordination is required.
+5. Add a SwiftUI screen under `App/UI/<Feature>/` and reach interactors / state through `injected`.
+6. Mirror the new protocol with a mock under `UnitTests/Mocks/` and add tests beside the existing layout.
 
-Side effects are triggered by the user's actions (such as a tap on a button) or view lifecycle event `onAppear` and are forwarded to the `Interactors`.
+## Build & test
 
-State and business logic layer (`AppState` + `Interactors`) are natively injected into the view hierarchy with `@Environment`.
+See [`docs/BUILD.md`](docs/BUILD.md). Short version:
 
-### Business Logic Layer
+```bash
+# Run the app
+open App.xcodeproj  # then ⌘R on an iOS Simulator
 
-Business Logic Layer is represented by `Interactors`. 
+# Tests from the command line
+xcodebuild \
+  -project App.xcodeproj \
+  -scheme App \
+  -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.2' \
+  test
+```
 
-Interactors receive requests to perform work, such as obtaining data from an external source or making computations, but they never return data back directly.
+## Credits
 
-Instead, they forward the result to the `AppState` or to a `Binding`. The latter is used when the result of work (the data) is used locally by one View and does not belong to the `AppState`.
-
-[Previously](https://github.com/nalexn/clean-architecture-swiftui/releases/tag/1.0), this app did not use CoreData for persistence, and all loaded data were stored in the `AppState`.
-
-With the persistence layer in place we have a choice - either to load the DB content onto the `AppState`, or serve the data from `Interactors` on an on-demand basis through `Binding`.
-
-The first option suits best when you don't have a lot of data, for example, when you just store the last used login email in the `UserDefaults`. Then, the corresponding string value can just be loaded onto the `AppState` at launch and updated by the `Interactor` when the user changes the input.
-
-The second option is better when you have massive amounts of data and introduce a fully-fledged database for storing it locally.
-
-### Data Access Layer
-
-Data Access Layer is represented by `Repositories`.
-
-Repositories provide asynchronous API (`Publisher` from Combine) for making [CRUD](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete) operations on the backend or a local database. They don't contain business logic, neither do they mutate the `AppState`. Repositories are accessible and used only by the Interactors.
-
----
-
-[![Twitter](https://img.shields.io/badge/twitter-nallexn-blue)](https://twitter.com/nallexn) [![blog](https://img.shields.io/badge/blog-github-blue)](https://nalexn.github.io/?utm_source=nalexn_github)
+Forked from [nalexn/clean-architecture-swiftui](https://github.com/nalexn/clean-architecture-swiftui) (MIT). The original demo app has been removed so this repo can be used as a generic template.

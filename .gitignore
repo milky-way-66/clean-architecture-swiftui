@@ -36,6 +36,9 @@ playground.xcworkspace
 ## Tools artifacts
 cpd-output.xml
 
+## GitNexus local index (regenerate with npx gitnexus analyze)
+.gitnexus/
+
 ## SwiftyBeaver
 Hamew.beaver
 

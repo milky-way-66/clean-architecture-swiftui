@@ -2,13 +2,10 @@
 //  PushNotificationsHandlerTests.swift
 //  UnitTests
 //
-//  Created by Alexey Naumov on 26.04.2020.
-//  Copyright © 2020 Alexey Naumov. All rights reserved.
-//
 
 import Testing
 import UserNotifications
-@testable import CountriesSwiftUI
+@testable import App
 
 @MainActor
 @Suite struct PushNotificationsHandlerTests {
@@ -31,15 +28,15 @@ import UserNotifications
         }
         await exp.fulfillment()
     }
-    
+
     @Test func deepLinkPayload() async throws {
         let mockedHandler = MockedDeepLinksHandler(expected: [
-            .open(.showCountryFlag(alpha3Code: "USA"))
+            .open(.home)
         ])
         let sut = RealPushNotificationsHandler(deepLinksHandler: mockedHandler)
         let exp = TestExpectation()
         let userInfo: [String: Any] = [
-            "aps": ["country": "USA"]
+            "aps": ["deepLink": "https://www.example.com/home"]
         ]
         sut.handleNotification(userInfo: userInfo) {
             mockedHandler.verify()

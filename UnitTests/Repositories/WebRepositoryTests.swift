@@ -2,14 +2,11 @@
 //  WebRepositoryTests.swift
 //  UnitTests
 //
-//  Created by Alexey Naumov on 30.10.2019.
-//  Copyright © 2019 Alexey Naumov. All rights reserved.
-//
 
 import Testing
 import Combine
 import Foundation
-@testable import CountriesSwiftUI
+@testable import App
 
 @Suite(.serialized) final class WebRepositoryTests {
 
@@ -30,8 +27,10 @@ import Foundation
     }
 
     @Test func loadParseError() async throws {
-        let data = await ApiModel.Country.mockedData
-        try mock(.test, result: .success(data))
+        // Encode a payload that can't be decoded as `TestData`
+        // so we exercise the `APIError.unexpectedResponse` branch.
+        let mismatchedPayload = ["unrelated": "value"]
+        try mock(.test, result: .success(mismatchedPayload))
         await #expect(throws: APIError.unexpectedResponse) {
             try await sut.load(.test)
         }
@@ -142,4 +141,3 @@ extension TestWebRepository {
         }
     }
 }
-

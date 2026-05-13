@@ -8,23 +8,23 @@
 
 import Foundation
 import Testing
-@testable import CountriesSwiftUI
+@testable import App
 
 @Suite struct HelpersTests {
 
     @Test func localizedDefaultLocale() {
-        let sut = "Countries".localized(Locale.backendDefault)
-        #expect(sut == "Countries")
+        let sut = "Home".localized(Locale.backendDefault)
+        #expect(sut == "Home")
     }
 
     @Test func localizedKnownLocale() {
-        let sut = "Countries".localized(Locale(identifier: "de"))
-        #expect(sut == "Länder")
+        let sut = "Home".localized(Locale(identifier: "de"))
+        #expect(sut == "Startseite")
     }
 
     @Test func localizedUnknownLocale() {
-        let sut = "Countries".localized(Locale(identifier: "ch"))
-        #expect(sut == "Countries")
+        let sut = "Home".localized(Locale(identifier: "ch"))
+        #expect(sut == "Home")
     }
 
     @Test func resultIsSuccess() {

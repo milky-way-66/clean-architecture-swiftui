@@ -1,0 +1,27 @@
+---
+description: Swift and SwiftUI conventions for this iOS project
+globs: **/*.swift
+alwaysApply: false
+---
+
+# Swift / SwiftUI conventions
+
+## Style and clarity
+
+- Prefer `struct` for models and value types; use `class` only when reference identity or Objective-C interop requires it.
+- Mark UI entry types with `@MainActor` when they touch UIKit/SwiftUI app lifecycle (match `AppEnvironment`).
+- Use `async throws` for network and persistence boundaries; propagate typed errors (`APIError`, domain errors) instead of empty `catch` blocks.
+- Keep functions small and named for behavior (verbs for methods, nouns for properties). Avoid boolean trap parameters; use labeled arguments or small enums when clarity suffers.
+
+## SwiftUI
+
+- Extract subviews when a `body` grows unwieldy; keep environment reads (`injected`, bindings) at the top level of the view that needs them.
+- Prefer `@Observable` / observation only if the project already adopts it in that area; otherwise stay consistent with `Store` + `Combine` patterns already in use.
+
+## Access control
+
+- Tighten access (`private`, `fileprivate`) for helpers; keep protocols and DI-facing types `internal` unless a module boundary exists.
+
+## Apple APIs
+
+- Use Swift API Design Guidelines naming. Prefer standard library and SwiftUI patterns over custom wrappers unless they add clear value in this codebase.

@@ -1,9 +1,9 @@
 os: osx
 language: swift
-osx_image: xcode12.3
-xcode_project: CountriesSwiftUI.xcodeproj
-xcode_scheme: CountriesSwiftUI
-xcode_sdk: iphonesimulator14.2
-xcode_destination: platform=iOS Simulator,OS=14.2,name=iPhone 8
+osx_image: xcode16.1
+xcode_project: App.xcodeproj
+xcode_scheme: App
+xcode_sdk: iphonesimulator
+xcode_destination: generic/platform=iOS Simulator
 after_success:
   - bash <(curl -s https://codecov.io/bash)

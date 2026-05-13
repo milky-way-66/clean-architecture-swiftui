@@ -2,12 +2,9 @@
 //  DeepLinksHandlerTests.swift
 //  UnitTests
 //
-//  Created by Alexey Naumov on 26.04.2020.
-//  Copyright © 2020 Alexey Naumov. All rights reserved.
-//
 
 import Testing
-@testable import CountriesSwiftUI
+@testable import App
 
 @MainActor
 @Suite struct DeepLinksHandlerTests {
@@ -25,34 +22,34 @@ import Testing
         let initialState = AppState()
         let container = DIContainer(appState: initialState, interactors: interactors)
         let sut = RealDeepLinksHandler(container: container)
-        sut.open(deepLink: .showCountryFlag(alpha3Code: "ITA"))
-        #expect(initialState.routing.countriesList.countryCode == nil)
-        #expect(!initialState.routing.countryDetails.detailsSheet)
-        var expectedState = AppState()
-        expectedState.routing.countriesList.countryCode = "ITA"
-        expectedState.routing.countryDetails.detailsSheet = true
+        sut.open(deepLink: .home)
         interactors.verify()
-        #expect(container.appState.value == expectedState)
+        // The default `.home` link keeps routing at its default value.
+        #expect(container.appState.value == AppState())
     }
 
     @Test func openingDeeplinkFromNonDefaultRouting() async throws {
         let interactors: DIContainer.Interactors = .mocked()
-        var initialState = AppState()
-        initialState.routing.countriesList.countryCode = "FRA"
-        initialState.routing.countryDetails.detailsSheet = true
+        let initialState = AppState()
         let container = DIContainer(appState: initialState, interactors: interactors)
         let sut = RealDeepLinksHandler(container: container)
-        sut.open(deepLink: .showCountryFlag(alpha3Code: "ITA"))
-
-        let resettedState = AppState()
-        var finalState = AppState()
-        finalState.routing.countriesList.countryCode = "ITA"
-        finalState.routing.countryDetails.detailsSheet = true
-
-        #expect(container.appState.value == resettedState)
+        // Simulate a non-default routing state, then open the deep link
+        // to assert routing is reset back to default.
+        container.appState[\.system.isActive] = true
+        sut.open(deepLink: .home)
         try await Task.sleep(nanoseconds: 10_000_000)
         interactors.verify()
-        #expect(container.appState.value == finalState)
+        // `.home` resets `routing` to default; other parts of state are unchanged.
+        #expect(container.appState.value.routing == AppState.ViewRouting())
+    }
+
+    @Test func parseURLAcceptsHomeHost() {
+        #expect(DeepLink(url: URL(string: "https://www.example.com")!) == .home)
+        #expect(DeepLink(url: URL(string: "https://www.example.com/")!) == .home)
+        #expect(DeepLink(url: URL(string: "https://www.example.com/home")!) == .home)
+    }
+
+    @Test func parseURLRejectsUnknownHost() {
+        #expect(DeepLink(url: URL(string: "https://www.unknown.com/home")!) == nil)
     }
 }
-

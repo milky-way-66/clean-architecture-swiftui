@@ -9,7 +9,7 @@
 import Testing
 import SwiftUI
 import ViewInspector
-@testable import CountriesSwiftUI
+@testable import App
 
 @MainActor
 @Suite struct RootViewAppearanceTests {

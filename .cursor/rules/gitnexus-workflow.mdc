@@ -1,0 +1,27 @@
+---
+description: Use GitNexus for graph-based codebase analysis in this repo
+alwaysApply: true
+---
+
+# GitNexus (optional but recommended)
+
+This repo can be indexed with the GitNexus CLI for structure-aware questions, impact analysis, and refactors (enable the GitNexus MCP in Cursor when you use it).
+
+## Setup and refresh
+
+From the repository root:
+
+```bash
+npx gitnexus analyze
+```
+
+- Re-run after large refactors or when exploration feels stale. Use `npx gitnexus status` to see index freshness.
+- Optional richer retrieval: `npx gitnexus analyze --embeddings` (slower; needs API key configuration as per GitNexus docs). The default index already builds the **knowledge graph** (symbols and relationships); embeddings add semantic search, not a separate “graphify” step.
+
+## Agent workflow
+
+When the user (or task) needs architecture, call graphs, blast radius, or cross-file traces: prefer GitNexus MCP resources and tools (`gitnexus://repo/{name}/context`, `query`, `impact`, `cypher` after reading schema) over blind full-repo grep. If context reports a stale index, run `analyze` first.
+
+## Swift parser
+
+If `analyze` logs **“Skipping … swift file(s) — swift parser not available”**, run `npm rebuild tree-sitter-swift` from a directory where that package is installed (e.g. after `npm install gitnexus` in a tooling folder), or use the GitNexus docs for your platform so symbol-level Swift graphs are included.
